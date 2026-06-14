@@ -4,27 +4,27 @@ from google import genai
 
 app = Flask(__name__)
 
-# אתחול ג'ימני עם ה-SDK החדש
+# אתחול ג'ימני עם ה-SDK החדש שלך
 client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
 @app.route('/gemini-ivr', methods=['GET', 'POST'])
 def gemini_ivr():
-    # קבלת פרטי הקובץ מימות המשיח (בחינם)
+    # קבלת פרטי הקובץ המוקלט מימות המשיח (בחינם!)
     file_name = request.args.get('File')
     path = request.args.get('Path')
     
-    # שלב א': המאזין רק נכנס לשלוחה -> מפעילים את הציפצוף וההקלטה החינמית
+    # שלב 1: המאזין רק נכנס לשלוחה -> משמיעים ציפצוף ומקליטים בחינם
     if not file_name:
         recording_command = "type=record&say_record_menu=no&say_record_number=no&hangup_insert_file=no"
         return Response(recording_command, mimetype='text/plain')
 
-    # שלב ב': ההקלטה הסתיימה -> שולחים את הקישור לג'ימיני שיקשיב בחינם
+    # שלב 2: ההקלטה הסתיימה -> שולחים את הקישור לג'ימיני שיקשיב בחינם
     try:
-        # טוקן המערכת שלך מימות המשיח (הגדר ב-Render תחת YM_TOKEN)
+        # טוקן המערכת שלך (חובה להגדיר ב-Render תחת השם YM_TOKEN)
         ym_token = os.environ.get("YM_TOKEN", "")
         file_url = f"https://ym-files.co{ym_token}&path={path}/{file_name}"
         
-        # אנחנו מבקשים מג'ימיני להקשיב לקובץ ולענות בקצרות
+        # מבקשים מג'ימיני להקשיב לקובץ השמע ולענות בקצרה בעברית
         prompt = f"Listen to the audio file at this URL and answer briefly in Hebrew, suitable for phone text-to-speech: {file_url}"
         
         response = client.models.generate_content(
@@ -32,13 +32,13 @@ def gemini_ivr():
             contents=[prompt]
         )
         
-        # מחזירים את התשובה להקראה בחינם ומחזירים לתפריט הראשי (/) כדי שלא יהיה שקט
+        # מחזירים את התשובה להקראה ומעבירים לתפריט הראשי (/) כדי שלא יהיה שקט
         ivr_output = f"id_list_message=t-{response.text}&go_to_folder=/"
         
     except Exception as e:
         ivr_output = "id_list_message=t-חלה שגיאה זמנית בעיבוד הנתונים. אנא נסו שוב.&go_to_folder=/"
 
-    # חובה להחזיר כטקסט פשוט כדי שימות המשיח יבינו
+    # חובה להחזיר כטקסט פשוט כדי למנוע שקט מוחלט בטלפון
     return Response(ivr_output, mimetype='text/plain')
 
 if __name__ == '__main__':
